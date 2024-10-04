@@ -19,8 +19,22 @@
   </entry>
 <% end %>
   read_from_head true
-  tag kubelet
+  tag kubelet.systemd
 </source>
+<% case target when "papertrail" %>
+# transform systemd logs to Papertrail format
+<filter kubelet.systemd>
+  @type record_transformer
+  enable_ruby true
+  <record>
+    hostname "#{ENV['FLUENT_HOSTNAME']}-#{ENV['K8S_NODE_NAME']}"
+    program kubelet
+    severity info
+    facility local0
+    message ${record['MESSAGE']}
+  </record>
+</filter>
+<% end %>
 
 # Logs from docker-systemd
 <source>
@@ -40,6 +54,19 @@
   read_from_head true
   tag docker.systemd
 </source>
+<% case target when "papertrail" %>
+# transform systemd logs to Papertrail format
+<filter docker.systemd>
+  @type record_transformer
+  enable_ruby true
+  <record>
+    hostname "#{ENV['FLUENT_HOSTNAME']}-#{ENV['K8S_NODE_NAME']}"
+    program docker
+    severity info
+    facility local0
+  </record>
+</filter>
+<% end %>
 
 # Logs from systemd-journal for interesting services.
 <source>
